@@ -1,0 +1,16 @@
+# .gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar o banco de dados (Muito importante!)
+data/
+
+# Ambientes virtuais (caso crie um no futuro)
+venv/
+env/
+
+# Outros
+.env
+.DS_Store

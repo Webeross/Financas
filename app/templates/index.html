@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Container principal mais estreito no desktop para simular a proporção mobile -->
+<div class="max-w-md mx-auto md:max-w-5xl space-y-6">
+
+    <!-- 1. CARTÃO HERO (Patrimônio e Ações Rápidas) -->
+    <div class="bg-slate-900 rounded-[2rem] shadow-xl p-6 md:p-8 text-white relative overflow-hidden">
+        <!-- Efeitos de luz no fundo do cartão escuro -->
+        <div class="absolute top-0 right-0 w-40 h-40 bg-indigo-500 rounded-full mix-blend-screen filter blur-3xl opacity-30"></div>
+        <div class="absolute bottom-0 left-0 w-40 h-40 bg-emerald-500 rounded-full mix-blend-screen filter blur-3xl opacity-20"></div>
+
+        <div class="relative z-10">
+            <p class="text-slate-400 text-sm font-medium flex items-center justify-between">
+                Patrimônio Total
+                <i class="ph ph-eye text-xl text-slate-500 hover:text-white transition cursor-pointer"></i>
+            </p>
+            <h2 class="text-4xl md:text-5xl font-bold mt-2 tracking-tight">R$ {{ "%.2f"|format(total_saldo) }}</h2>
+
+            <!-- Botoões de Acesso Rápido -->
+            <div class="flex justify-between mt-8 pt-4 border-t border-slate-700/50">
+                <button onclick="document.getElementById('modalNovaTransacao').showModal()" class="flex flex-col items-center gap-2 group">
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center group-hover:bg-slate-700 group-hover:border-slate-500 transition shadow-lg">
+                        <i class="ph ph-arrow-down-left text-xl md:text-2xl text-red-400"></i>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 group-hover:text-white transition">Despesa</span>
+                </button>
+
+                <button onclick="document.getElementById('modalNovaTransacao').showModal()" class="flex flex-col items-center gap-2 group">
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center group-hover:bg-slate-700 group-hover:border-slate-500 transition shadow-lg">
+                        <i class="ph ph-arrow-up-right text-xl md:text-2xl text-emerald-400"></i>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 group-hover:text-white transition">Receita</span>
+                </button>
+
+                <button onclick="document.getElementById('modalNovaConta').showModal()" class="flex flex-col items-center gap-2 group">
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center group-hover:bg-slate-700 group-hover:border-slate-500 transition shadow-lg">
+                        <i class="ph ph-bank text-xl md:text-2xl text-indigo-400"></i>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 group-hover:text-white transition">Conta</span>
+                </button>
+
+                <button class="flex flex-col items-center gap-2 group">
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center group-hover:bg-slate-700 group-hover:border-slate-500 transition shadow-lg">
+                        <i class="ph ph-chart-pie-slice text-xl md:text-2xl text-amber-400"></i>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 group-hover:text-white transition">Gráficos</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. GRID INFERIOR (Contas e Transações) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Minhas Contas -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-slate-800">Carteira</h3>
+            </div>
+            
+            <div id="lista-contas" class="space-y-3">
+                {% for conta in contas %}
+                    {% include 'conta_item.html' %}
+                {% else %}
+                    <div class="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <i class="ph ph-wallet text-3xl text-slate-300 mb-2"></i>
+                        <p class="text-slate-500 text-sm">Nenhuma conta encontrada.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Últimas Transações -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-slate-800">Extrato</h3>
+                <a href="#" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Ver tudo</a>
+            </div>
+            
+            <div class="divide-y divide-slate-50">
+                {% for t in transacoes %}
+                <div class="py-4 flex justify-between items-center group cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center {% if t.categoria.tipo == 'Despesa' %}bg-red-50 text-red-500{% else %}bg-emerald-50 text-emerald-500{% endif %}">
+                            <i class="ph {% if t.categoria.tipo == 'Despesa' %}ph-shopping-cart{% else %}ph-trend-up{% endif %} text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-800 group-hover:text-indigo-600 transition">{{ t.descricao }}</p>
+                            <p class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{{ t.categoria.nome }} • {{ t.data.strftime('%d/%m') }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-bold {% if t.categoria.tipo == 'Despesa' %}text-red-500{% else %}text-emerald-500{% endif %}">
+                            {% if t.categoria.tipo == 'Despesa' %}-{% else %}+{% endif %} R$ {{ "%.2f"|format(t.valor) }}
+                        </span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <i class="ph ph-receipt text-3xl text-slate-300 mb-2"></i>
+                    <p class="text-slate-500 text-sm">Sem movimentações recentes.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Mantém os modais exatamente como estavam antes aqui em baixo -->
+<dialog id="modalNovaConta" class="p-6 rounded-3xl shadow-2xl backdrop:bg-slate-900/60 w-full max-w-md border-0">
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-slate-800">Nova Conta</h3>
+        <button onclick="document.getElementById('modalNovaConta').close()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
+            <i class="ph-bold ph-x"></i>
+        </button>
+    </div>
+    <form hx-post="/frontend/contas" hx-target="#lista-contas" hx-swap="beforeend" hx-on::after-request="document.getElementById('modalNovaConta').close(); this.reset();">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Instituição</label>
+                <input type="text" name="nome" required class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition p-3 outline-none" placeholder="Ex: Nubank, XP">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Tipo</label>
+                <select name="tipo" class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition p-3 outline-none">
+                    <option>Corrente</option>
+                    <option>Investimento</option>
+                    <option>Poupança</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Saldo Atual (R$)</label>
+                <input type="number" step="0.01" name="saldo_atual" required class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition p-3 outline-none" placeholder="0.00">
+            </div>
+        </div>
+        <button type="submit" class="w-full mt-6 bg-indigo-600 text-white py-3 px-4 rounded-xl hover:bg-indigo-700 transition font-bold shadow-lg shadow-indigo-200">Salvar Conta</button>
+    </form>
+</dialog>
+
+<dialog id="modalNovaTransacao" class="p-6 rounded-3xl shadow-2xl backdrop:bg-slate-900/60 w-full max-w-md border-0">
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-slate-800">Nova Transação</h3>
+        <button onclick="document.getElementById('modalNovaTransacao').close()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
+            <i class="ph-bold ph-x"></i>
+        </button>
+    </div>
+    <form hx-post="/frontend/transacoes">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Descrição</label>
+                <input type="text" name="descricao" required class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition p-3 outline-none" placeholder="O que você pagou/recebeu?">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Valor (R$)</label>
+                    <input type="number" step="0.01" name="valor" required class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition p-3 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Categoria</label>
+                    <select name="categoria_id" class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition p-3 outline-none">
+                        {% for cat in categorias %}
+                        <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Conta Origem/Destino</label>
+                <select name="conta_id" class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition p-3 outline-none">
+                    {% for conta in contas %}
+                    <option value="{{ conta.id }}">{{ conta.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="w-full mt-6 bg-slate-900 text-white py-3 px-4 rounded-xl hover:bg-slate-800 transition font-bold shadow-lg">Registrar Movimentação</button>
+    </form>
+</dialog>
+{% endblock %}

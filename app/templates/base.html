@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <!-- Configuração para tela de celular e PWA -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
+    <title>Finanças pae</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- Ícones modernos para o nosso App -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased pb-20 md:pb-0">
+    
+    <!-- Barra Superior (Topo) -->
+    <nav class="bg-indigo-600 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <span class="text-xl font-bold tracking-tight flex items-center gap-2">
+                    <i class="ph-fill ph-wallet"></i> Finanças pae
+                </span>
+                <!-- Avatar fictício do usuário -->
+                <div class="w-8 h-8 rounded-full bg-indigo-400 border-2 border-indigo-300 flex items-center justify-center text-sm font-bold">
+                    ED
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- BARRA DE NAVEGAÇÃO INFERIOR (Apenas Mobile) -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center h-16 z-50 pb-safe">
+        <a href="#" class="flex flex-col items-center text-indigo-600">
+            <i class="ph-fill ph-house text-2xl"></i>
+            <span class="text-[10px] font-medium mt-1">Início</span>
+        </a>
+        <a href="#" class="flex flex-col items-center text-slate-400 hover:text-indigo-600 transition">
+            <i class="ph ph-chart-line-up text-2xl"></i>
+            <span class="text-[10px] font-medium mt-1">Gráficos</span>
+        </a>
+        <a href="#" class="flex flex-col items-center text-slate-400 hover:text-indigo-600 transition">
+            <i class="ph ph-list-dashes text-2xl"></i>
+            <span class="text-[10px] font-medium mt-1">Extrato</span>
+        </a>
+        <a href="#" class="flex flex-col items-center text-slate-400 hover:text-indigo-600 transition">
+            <i class="ph ph-gear text-2xl"></i>
+            <span class="text-[10px] font-medium mt-1">Ajustes</span>
+        </a>
+    </div>
+
+</body>
+</html>

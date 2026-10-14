@@ -1,0 +1,18 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app       
+      - ./run.py:/app/run.py
+      - ./data:/app/data     
+    environment:
+      - FLASK_ENV=development
+
+  # O Módulo Mágico: Cria um link seguro HTTPS para o seu telemóvel
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --url http://web:5000
+    depends_on:
+      - web
