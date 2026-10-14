@@ -1,0 +1,42 @@
+Comandos Docker
+
+Iniciar os contentores em segundo plano (Flask e Cloudflare):
+
+sudo docker-compose up -d --build
+
+
+Reiniciar a aplicacao web (util para forcar recarregamento apos erros no codigo):
+
+sudo docker-compose restart web
+
+
+Visualizar os logs do tunel da Cloudflare (para obter o link de acesso externo):
+
+sudo docker-compose logs tunnel
+
+
+Parar o sistema completamente:
+
+sudo docker-compose down
+
+
+Hard Reset do Banco de Dados
+
+Se precisar apagar todas as transacoes, contas e comecar do zero (util em fase de testes), siga estes tres passos para limpar os dados e recriar o SQLite:
+
+Pare o sistema e liberte o ficheiro:
+
+sudo docker-compose down
+
+
+Apague o banco de dados e as caches do SQLite:
+
+sudo rm data/financas.db data/financas.db-wal data/financas.db-shm
+
+
+Volte a iniciar o sistema:
+
+sudo docker-compose up -d
+
+
+O Flask encarrega-se de recriar as tabelas estruturais e as credenciais de primeiro acesso automaticamente ao iniciar.

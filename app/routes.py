@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, render_template, make_response
+from sqlalchemy import func
 from .models import db, Conta, Categoria, Transacao
 
 # Blueprint da API JSON
@@ -28,6 +29,19 @@ def listar_contas():
         for c in contas
     ]
     return jsonify(resultado)
+
+@api.route('/estatisticas/despesas', methods=['GET'])
+def estatisticas_despesas():
+    # Junta as transações e categorias, filtra só despesas e soma os valores
+    resultado = db.session.query(
+        Categoria.nome, 
+        func.sum(Transacao.valor).label('total')
+    ).join(Transacao).filter(Categoria.tipo == 'Despesa').group_by(Categoria.nome).all()
+    
+    labels = [linha.nome for linha in resultado]
+    valores = [float(linha.total) for linha in resultado]
+    
+    return jsonify({"labels": labels, "valores": valores})
 
 # Blueprint do Frontend
 frontend = Blueprint('frontend', __name__)

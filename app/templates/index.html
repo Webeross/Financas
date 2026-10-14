@@ -50,6 +50,81 @@
         </div>
     </div>
 
+    <!-- CARTÃO DE ESTATÍSTICAS (ApexCharts) -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8 mb-6">
+        <h3 class="text-lg font-bold text-slate-800 mb-2">Para onde vai o dinheiro?</h3>
+        <p class="text-sm text-slate-500 mb-4">Despesas por categoria</p>
+        
+        <!-- A div onde o gráfico será renderizado -->
+        <div id="graficoDespesas" class="min-h-[250px] flex items-center justify-center">
+            <!-- Um spinner de loading enquanto busca os dados -->
+            <i class="ph ph-spinner animate-spin text-3xl text-indigo-300"></i>
+        </div>
+    </div>
+
+    <script>
+        // Assim que a página carrega, busca os dados da nossa nova rota API
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/estatisticas/despesas')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('graficoDespesas').innerHTML = ''; // Remove o spinner
+                    
+                    if(data.valores.length === 0) {
+                        document.getElementById('graficoDespesas').innerHTML = '<p class="text-slate-400 text-sm">Sem despesas registradas ainda.</p>';
+                        return;
+                    }
+
+                    var options = {
+                        series: data.valores,
+                        labels: data.labels,
+                        chart: {
+                            type: 'donut',
+                            height: 280,
+                            fontFamily: 'inherit'
+                        },
+                        colors: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                        plotOptions: {
+                            pie: {
+                                donut: {
+                                    size: '70%',
+                                    labels: {
+                                        show: true,
+                                        name: { show: false },
+                                        value: {
+                                            show: true,
+                                            fontSize: '24px',
+                                            fontWeight: 700,
+                                            formatter: function (val) {
+                                                return "R$ " + val.toFixed(2)
+                                            }
+                                        },
+                                        total: {
+                                            show: true,
+                                            showAlways: true,
+                                            label: 'Total',
+                                            fontSize: '14px',
+                                            color: '#64748b',
+                                            formatter: function (w) {
+                                                const total = w.globals.seriesTotals.reduce((a, b) => { return a + b }, 0)
+                                                return "R$ " + total.toFixed(2)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        dataLabels: { enabled: false },
+                        legend: { position: 'bottom' },
+                        stroke: { width: 0 }
+                    };
+
+                    var chart = new ApexCharts(document.querySelector("#graficoDespesas"), options);
+                    chart.render();
+                });
+        });
+    </script>
+
     <!-- 2. GRID INFERIOR (Contas e Transações) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         
@@ -150,7 +225,7 @@
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-semibold text-slate-600 mb-1">Descrição</label>
-                <input type="text" name="descricao" required class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition p-3 outline-none" placeholder="O que você pagou/recebeu?">
+                <input type="text" name="descricao" required class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition p-3 outline-none" placeholder="O que pagou/recebeu?">
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
