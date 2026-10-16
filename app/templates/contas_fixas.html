@@ -59,4 +59,80 @@
                     </form>
 
                     <form action="/frontend/contas-a-pagar/{{ cp.id }}/excluir" method="POST" onsubmit="return confirm('Remover este agendamento?');">
-                        <button type="submit"
+                        <button type="submit" class="p-2 text-slate-400 hover:text-red-500 transition" title="Excluir agendamento">
+                            <i class="ph ph-trash text-lg"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <i class="ph ph-calendar-blank text-4xl text-slate-300 mb-3"></i>
+                <p class="text-slate-500 font-medium">Nenhuma conta fixa ou parcelamento agendado</p>
+                <p class="text-slate-400 text-sm mt-1">Clique em "Agendar Conta" acima para cadastrar seus compromissos do mês.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Nova Conta Fixa -->
+<dialog id="modalNovaFixa" class="p-6 rounded-3xl shadow-2xl backdrop:bg-slate-900/60 w-full max-w-md border-0">
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-slate-800">Agendar Compromisso</h3>
+        <button onclick="document.getElementById('modalNovaFixa').close()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
+            <i class="ph-bold ph-x"></i>
+        </button>
+    </div>
+
+    <form action="/frontend/contas-a-pagar" method="POST">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Descrição</label>
+                <input type="text" name="descricao" required class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none" placeholder="Ex: Aluguel, Internet, Seguro...">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Valor (R$)</label>
+                    <input type="number" step="0.01" inputmode="decimal" name="valor" required class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none" placeholder="0,00">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Dia do Vencimento</label>
+                    <input type="number" min="1" max="31" name="dia_vencimento" required class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none" placeholder="Ex: 10">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Modalidade</label>
+                    <select name="tipo" onchange="document.getElementById('parcelas_div').classList.toggle('hidden', this.value === 'Fixa')" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none">
+                        <option value="Fixa">Fixa Mensal</option>
+                        <option value="Parcelada">Parcelada</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Categoria</label>
+                    <select name="categoria_id" required class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none">
+                        {% for cat in categorias %}
+                        <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div id="parcelas_div" class="hidden grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200 mt-2">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Parcela Atual</label>
+                    <input type="number" min="1" name="parcela_atual" value="1" class="w-full rounded-lg border border-slate-200 bg-white p-2 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Total de Parcelas</label>
+                    <input type="number" min="1" name="total_parcelas" class="w-full rounded-lg border border-slate-200 bg-white p-2 outline-none" placeholder="Ex: 12">
+                </div>
+            </div>
+        </div>
+        <button type="submit" class="w-full mt-6 bg-cyan-600 text-white py-3.5 px-4 rounded-xl hover:bg-cyan-700 transition font-bold shadow-lg">Salvar Agendamento</button>
+    </form>
+</dialog>
+{% endblock %}
