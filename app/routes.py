@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template, make_response
+from flask import Blueprint, request, jsonify, render_template, make_response, redirect, url_for
 from sqlalchemy import func
 from .models import db, Conta, Categoria, Transacao, ContaAPagar
 
@@ -130,7 +130,6 @@ def front_criar_conta_a_pagar():
         categoria_id=categoria_id
     )
     
-    # Se for parcelada, recolhe as parcelas
     if tipo == 'Parcelada':
         nova_conta.parcela_atual = int(request.form.get('parcela_atual', 1))
         nova_conta.total_parcelas = int(request.form.get('total_parcelas', 1))
@@ -138,6 +137,12 @@ def front_criar_conta_a_pagar():
     db.session.add(nova_conta)
     db.session.commit()
     
-    resposta = make_response()
-    resposta.headers['HX-Refresh'] = 'true'
-    return resposta
+    # Redireciona para a nova página após salvar
+    return redirect(url_for('frontend.contas_fixas'))
+
+@frontend.route('/contas-fixas')
+def contas_fixas():
+    contas_a_pagar = ContaAPagar.query.order_by(ContaAPagar.dia_vencimento.asc()).all()
+    # Trazemos apenas categorias de despesa para o formulário
+    categorias = Categoria.query.filter_by(tipo='Despesa').all() 
+    return render_template('contas_fixas.html', contas_a_pagar=contas_a_pagar, categorias=categorias)
