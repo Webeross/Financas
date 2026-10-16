@@ -46,6 +46,12 @@
                     </div>
                     <span class="text-xs font-medium text-slate-400 group-hover:text-white transition">Gráficos</span>
                 </button>
+                <button onclick="document.getElementById('modalContasFixas').showModal()" class="flex flex-col items-center gap-2 group">
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center group-hover:bg-slate-700 group-hover:border-slate-500 transition shadow-lg">
+                        <i class="ph ph-calendar-blank text-xl md:text-2xl text-cyan-400"></i>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400 group-hover:text-white transition">Fixas</span>
+                </button>
             </div>
         </div>
     </div>
@@ -291,6 +297,89 @@
             <p class="text-slate-400 text-sm">Selecione uma categoria acima para filtrar</p>
         </div>
     </div>
+</dialog>
+
+<dialog id="modalContasFixas" class="p-6 rounded-3xl shadow-2xl backdrop:bg-slate-900/60 w-full max-w-md border-0">
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-slate-800">Contas Fixas & Parcelas</h3>
+        <button onclick="document.getElementById('modalContasFixas').close()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
+            <i class="ph-bold ph-x"></i>
+        </button>
+    </div>
+
+    <!-- Lista de contas a pagar cadastradas -->
+    <div class="mb-6 max-h-40 overflow-y-auto pr-2 space-y-2" style="scrollbar-width: thin;">
+        {% for cp in contas_a_pagar %}
+        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+            <div>
+                <p class="font-bold text-slate-700 text-sm">{{ cp.descricao }}</p>
+                <p class="text-[11px] text-slate-400 font-medium">
+                    Dia {{ cp.dia_vencimento }} • 
+                    {% if cp.tipo == 'Parcelada' %} Parcela {{ cp.parcela_atual }}/{{ cp.total_parcelas }} {% else %} Recorrente {% endif %}
+                </p>
+            </div>
+            <span class="font-bold text-slate-700 text-sm">R$ {{ "%.2f"|format(cp.valor) }}</span>
+        </div>
+        {% else %}
+        <p class="text-center text-xs text-slate-400 py-2">Nenhuma conta agendada.</p>
+        {% endfor %}
+    </div>
+
+    <hr class="border-slate-100 mb-6">
+
+    <!-- Formulário para adicionar nova conta -->
+    <form hx-post="/frontend/contas-a-pagar">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Descrição</label>
+                <input type="text" name="descricao" required class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 outline-none" placeholder="Ex: IPTU, Financiamento">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Valor (R$)</label>
+                    <input type="number" step="0.01" name="valor" required class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Vencimento (Dia)</label>
+                    <input type="number" min="1" max="31" name="dia_vencimento" required class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 outline-none" placeholder="Ex: 10">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Tipo</label>
+                    <select name="tipo" onchange="document.getElementById('parcelas_div').classList.toggle('hidden', this.value === 'Fixa')" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 outline-none">
+                        <option value="Fixa">Fixa Mensal</option>
+                        <option value="Parcelada">Parcelada</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">Categoria</label>
+                    <select name="categoria_id" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 outline-none">
+                        {% for cat in categorias %}
+                            {% if cat.tipo == 'Despesa' %}
+                            <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Div oculta que só aparece se escolher "Parcelada" -->
+            <div id="parcelas_div" class="hidden grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Parcela Atual</label>
+                    <input type="number" min="1" name="parcela_atual" value="1" class="w-full rounded-lg border-slate-200 p-2 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Total Parcelas</label>
+                    <input type="number" min="1" name="total_parcelas" class="w-full rounded-lg border-slate-200 p-2 outline-none">
+                </div>
+            </div>
+        </div>
+        <button type="submit" class="w-full mt-6 bg-cyan-600 text-white py-3 px-4 rounded-xl hover:bg-cyan-700 transition font-bold shadow-lg">Agendar Conta</button>
+    </form>
 </dialog>
 
 <!-- O ENDBLOCK TEM DE SER A ÚLTIMA LINHA -->

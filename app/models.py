@@ -26,3 +26,15 @@ class Transacao(db.Model):
     valor = db.Column(db.Float, nullable=False)
     descricao = db.Column(db.String(255))
     data = db.Column(db.DateTime, default=datetime.utcnow)
+
+class ContaAPagar(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    descricao = db.Column(db.String(100), nullable=False)
+    valor = db.Column(db.Float, nullable=False)
+    dia_vencimento = db.Column(db.Integer, nullable=False)
+    tipo = db.Column(db.String(20), nullable=False) # 'Fixa' ou 'Parcelada'
+    parcela_atual = db.Column(db.Integer, default=1, nullable=True)
+    total_parcelas = db.Column(db.Integer, nullable=True)
+    
+    categoria_id = db.Column(db.Integer, db.ForeignKey('categoria.id'), nullable=False)
+    categoria = db.relationship('Categoria')

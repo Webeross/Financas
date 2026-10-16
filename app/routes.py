@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template, make_response
 from sqlalchemy import func
-from .models import db, Conta, Categoria, Transacao
+from .models import db, Conta, Categoria, Transacao, ContaAPagar
 
 # Blueprint da API JSON
 api = Blueprint('api', __name__)
@@ -52,13 +52,15 @@ def index():
     categorias = Categoria.query.all()
     # Puxa as últimas 10 transações
     transacoes = Transacao.query.order_by(Transacao.data.desc()).limit(10).all()
+    contas_a_pagar = ContaAPagar.query.order_by(ContaAPagar.dia_vencimento.asc()).all()
     
     total_saldo = sum(c.saldo_atual for c in contas)
     
     return render_template('index.html', 
                            contas=contas, 
                            categorias=categorias, 
-                           transacoes=transacoes, 
+                           transacoes=transacoes,
+                           contas_a_pagar=contas_a_pagar,
                            total_saldo=total_saldo)
 
 @frontend.route('/frontend/contas', methods=['POST'])
@@ -111,3 +113,31 @@ def filtrar_por_categoria(categoria_id):
     total = sum(t.valor for t in transacoes)
     
     return render_template('filtro_resultados.html', transacoes=transacoes, categoria=categoria, total=total)
+
+@frontend.route('/frontend/contas-a-pagar', methods=['POST'])
+def front_criar_conta_a_pagar():
+    descricao = request.form.get('descricao')
+    valor = float(request.form.get('valor'))
+    dia_vencimento = int(request.form.get('dia_vencimento'))
+    tipo = request.form.get('tipo')
+    categoria_id = int(request.form.get('categoria_id'))
+    
+    nova_conta = ContaAPagar(
+        descricao=descricao,
+        valor=valor,
+        dia_vencimento=dia_vencimento,
+        tipo=tipo,
+        categoria_id=categoria_id
+    )
+    
+    # Se for parcelada, recolhe as parcelas
+    if tipo == 'Parcelada':
+        nova_conta.parcela_atual = int(request.form.get('parcela_atual', 1))
+        nova_conta.total_parcelas = int(request.form.get('total_parcelas', 1))
+        
+    db.session.add(nova_conta)
+    db.session.commit()
+    
+    resposta = make_response()
+    resposta.headers['HX-Refresh'] = 'true'
+    return resposta
