@@ -3,22 +3,22 @@
 {% block content %}
 <div class="max-w-md mx-auto md:max-w-5xl space-y-6">
     
-    <!-- Cabeçalho de Navegação -->
-    <div class="flex items-center justify-between bg-slate-900 text-white p-6 rounded-[2rem] shadow-xl relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl opacity-20"></div>
+    <!-- Cabeçalho com Totalizador -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 text-white p-6 md:p-8 rounded-[2rem] shadow-xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-40 h-40 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl opacity-20"></div>
         
         <div class="relative z-10 flex items-center gap-4">
-            <a href="/" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition">
+            <a href="/" class="w-11 h-11 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition">
                 <i class="ph ph-arrow-left text-xl"></i>
             </a>
             <div>
-                <h2 class="text-2xl font-bold tracking-tight">Contas Fixas</h2>
-                <p class="text-slate-400 text-sm">Previsão e parcelamentos</p>
+                <h2 class="text-2xl font-bold tracking-tight">Contas Fixas & Parcelas</h2>
+                <p class="text-slate-400 text-sm">Total compromissado: <strong class="text-cyan-400">R$ {{ "%.2f"|format(total_fixas) }}</strong></p>
             </div>
         </div>
         
-        <button onclick="document.getElementById('modalNovaFixa').showModal()" class="relative z-10 w-12 h-12 rounded-full bg-cyan-500 text-slate-900 flex items-center justify-center hover:bg-cyan-400 transition font-bold shadow-lg shadow-cyan-500/30">
-            <i class="ph-bold ph-plus text-xl"></i>
+        <button onclick="document.getElementById('modalNovaFixa').showModal()" class="relative z-10 px-5 py-3 rounded-2xl bg-cyan-500 text-slate-900 flex items-center justify-center gap-2 hover:bg-cyan-400 transition font-bold shadow-lg shadow-cyan-500/30">
+            <i class="ph-bold ph-plus text-lg"></i> Agendar Conta
         </button>
     </div>
 
@@ -26,92 +26,37 @@
     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
         <div class="space-y-4">
             {% for cp in contas_a_pagar %}
-            <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-200 transition">
                 <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-white border border-slate-200 text-cyan-600 flex items-center justify-center shadow-sm">
-                        <i class="ph {% if cp.tipo == 'Parcelada' %}ph-credit-card{% else %}ph-arrows-clockwise{% endif %} text-2xl"></i>
+                    <div class="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-cyan-600 flex flex-col items-center justify-center shadow-sm leading-none">
+                        <span class="text-[10px] font-bold uppercase text-slate-400">Dia</span>
+                        <span class="text-base font-extrabold text-slate-800">{{ cp.dia_vencimento }}</span>
                     </div>
                     <div>
                         <p class="font-bold text-slate-800">{{ cp.descricao }}</p>
-                        <p class="text-xs font-medium text-slate-500 mt-0.5">
-                            <span class="text-cyan-600 font-bold bg-cyan-50 px-2 py-0.5 rounded-md mr-1">Dia {{ cp.dia_vencimento }}</span> 
-                            {% if cp.tipo == 'Parcelada' %} Parcela {{ cp.parcela_atual }}/{{ cp.total_parcelas }} {% else %} Recorrente {% endif %}
-                        </p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full {% if cp.tipo == 'Parcelada' %}bg-amber-100 text-amber-700{% else %}bg-cyan-100 text-cyan-700{% endif %}">
+                                {% if cp.tipo == 'Parcelada' %}Parcela {{ cp.parcela_atual }}/{{ cp.total_parcelas }}{% else %}Fixa Mensal{% endif %}
+                            </span>
+                            <span class="text-xs text-slate-400">• {{ cp.categoria.nome }}</span>
+                        </div>
                     </div>
                 </div>
-                <div class="text-right">
-                    <span class="font-bold text-slate-700 block">R$ {{ "%.2f"|format(cp.valor) }}</span>
-                </div>
-            </div>
-            {% else %}
-            <div class="text-center py-10">
-                <i class="ph ph-calendar-blank text-4xl text-slate-300 mb-3"></i>
-                <p class="text-slate-500 font-medium">Nenhuma conta agendada</p>
-                <p class="text-slate-400 text-sm mt-1">Clique no botão + acima para adicionar</p>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
 
-<!-- Modal para Nova Conta (Exclusivo desta página) -->
-<dialog id="modalNovaFixa" class="p-6 rounded-3xl shadow-2xl backdrop:bg-slate-900/60 w-full max-w-md border-0">
-    <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-slate-800">Agendar Conta</h3>
-        <button onclick="document.getElementById('modalNovaFixa').close()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
-            <i class="ph-bold ph-x"></i>
-        </button>
-    </div>
+                <div class="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-200/60">
+                    <span class="font-extrabold text-slate-800 text-lg mr-2">R$ {{ "%.2f"|format(cp.valor) }}</span>
+                    
+                    <!-- Formulário rápido para Dar Baixa -->
+                    <form action="/frontend/contas-a-pagar/{{ cp.id }}/pagar" method="POST" class="flex items-center gap-2">
+                        <select name="conta_id" required class="text-xs rounded-xl border border-slate-200 bg-white px-2.5 py-2 outline-none text-slate-600">
+                            {% for c in contas %}
+                            <option value="{{ c.id }}">{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition" title="Descontar saldo e lançar no extrato">
+                            <i class="ph-bold ph-check"></i> Dar Baixa
+                        </button>
+                    </form>
 
-    <form action="/frontend/contas-a-pagar" method="POST">
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-semibold text-slate-600 mb-1">Descrição</label>
-                <input type="text" name="descricao" required class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 outline-none" placeholder="Ex: IPTU, Financiamento">
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-1">Valor (R$)</label>
-                    <input type="number" step="0.01" name="valor" required class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-1">Dia do Vencimento</label>
-                    <input type="number" min="1" max="31" name="dia_vencimento" required class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 outline-none" placeholder="Ex: 10">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-1">Tipo</label>
-                    <select name="tipo" onchange="document.getElementById('parcelas_div').classList.toggle('hidden', this.value === 'Fixa')" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 outline-none">
-                        <option value="Fixa">Fixa Mensal</option>
-                        <option value="Parcelada">Parcelada</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-1">Categoria</label>
-                    <select name="categoria_id" class="w-full rounded-xl border-slate-200 bg-slate-50 p-3 outline-none">
-                        {% for cat in categorias %}
-                        <option value="{{ cat.id }}">{{ cat.nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <!-- Parâmetros da Parcela -->
-            <div id="parcelas_div" class="hidden grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100 mt-2">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Parcela Atual</label>
-                    <input type="number" min="1" name="parcela_atual" value="1" class="w-full rounded-lg border-slate-200 p-2 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Total Parcelas</label>
-                    <input type="number" min="1" name="total_parcelas" class="w-full rounded-lg border-slate-200 p-2 outline-none">
-                </div>
-            </div>
-        </div>
-        <button type="submit" class="w-full mt-6 bg-cyan-600 text-white py-3 px-4 rounded-xl hover:bg-cyan-700 transition font-bold shadow-lg">Salvar Agendamento</button>
-    </form>
-</dialog>
-{% endblock %}
+                    <form action="/frontend/contas-a-pagar/{{ cp.id }}/excluir" method="POST" onsubmit="return confirm('Remover este agendamento?');">
+                        <button type="submit"

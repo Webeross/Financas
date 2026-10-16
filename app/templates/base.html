@@ -2,64 +2,83 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <!-- Configuração para tela de celular e PWA -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#0f172a">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     
     <title>Finanças pae</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Adicione o ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <!-- Ícones modernos para o nosso App -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans antialiased pb-20 md:pb-0">
+<body class="bg-slate-50 text-slate-900 font-sans antialiased pb-24 md:pb-8">
     
-    <!-- Barra Superior (Topo) -->
-    <nav class="bg-indigo-600 text-white shadow-md sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Barra Superior -->
+    <nav class="bg-slate-900 text-white shadow-md sticky top-0 z-40 border-b border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <span class="text-xl font-bold tracking-tight flex items-center gap-2">
-                    <i class="ph-fill ph-wallet"></i> Finanças pae
-                </span>
-                <!-- Avatar fictício do usuário -->
-                <div class="w-8 h-8 rounded-full bg-indigo-400 border-2 border-indigo-300 flex items-center justify-center text-sm font-bold">
-                    EDUARDO
+                <a href="/" class="text-xl font-bold tracking-tight flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                        <i class="ph-fill ph-wallet text-xl"></i>
+                    </div>
+                    <span>Finanças <span class="text-indigo-400">pae</span></span>
+                </a>
+
+                <div class="flex items-center gap-3">
+                    <a href="/contas-fixas" class="hidden md:flex items-center gap-1.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 px-3.5 py-2 rounded-xl transition">
+                        <i class="ph ph-calendar-check text-cyan-400 text-lg"></i> Fixas & Parcelas
+                    </a>
+                    <div class="px-3 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 flex items-center gap-2 text-xs font-bold tracking-wider">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        EDUARDO
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Conteúdo Principal -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- BARRA DE NAVEGAÇÃO INFERIOR (Apenas Mobile) -->
-    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center h-16 z-50 pb-safe">
-        <a href="#" class="flex flex-col items-center text-indigo-600">
-            <i class="ph-fill ph-house text-2xl"></i>
-            <span class="text-[10px] font-medium mt-1">Início</span>
+    <!-- BARRA DE NAVEGAÇÃO INFERIOR (Mobile) -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around items-center h-16 z-50 px-2">
+        <a href="/" class="flex flex-col items-center {% if request.path == '/' %}text-indigo-600{% else %}text-slate-400{% endif %} transition">
+            <i class="{% if request.path == '/' %}ph-fill{% else %}ph{% endif %} ph-house text-2xl"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Início</span>
         </a>
-        <a href="#" class="flex flex-col items-center text-slate-400 hover:text-indigo-600 transition">
-            <i class="ph ph-chart-line-up text-2xl"></i>
-            <span class="text-[10px] font-medium mt-1">Gráficos</span>
+        <a href="/contas-fixas" class="flex flex-col items-center {% if request.path == '/contas-fixas' %}text-indigo-600{% else %}text-slate-400{% endif %} transition">
+            <i class="{% if request.path == '/contas-fixas' %}ph-fill{% else %}ph{% endif %} ph-calendar-blank text-2xl"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Fixas</span>
         </a>
-        <a href="#" class="flex flex-col items-center text-slate-400 hover:text-indigo-600 transition">
-            <i class="ph ph-list-dashes text-2xl"></i>
-            <span class="text-[10px] font-medium mt-1">Extrato</span>
-        </a>
-        <a href="#" class="flex flex-col items-center text-slate-400 hover:text-indigo-600 transition">
-            <i class="ph ph-gear text-2xl"></i>
-            <span class="text-[10px] font-medium mt-1">Ajustes</span>
-        </a>
+        <!-- Botão Central Flutuante no Mobile -->
+        <button onclick="typeof abrirModalTransacao === 'function' ? abrirModalTransacao('Despesa') : window.location.href='/'" class="w-12 h-12 -mt-6 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/40 flex items-center justify-center active:scale-95 transition">
+            <i class="ph-bold ph-plus text-xl"></i>
+        </button>
+        <button onclick="const m = document.getElementById('modalGraficos'); if(m) m.showModal(); else window.location.href='/';" class="flex flex-col items-center text-slate-400 hover:text-indigo-600 transition">
+            <i class="ph ph-chart-pie-slice text-2xl"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Análise</span>
+        </button>
+        <button onclick="const m = document.getElementById('modalNovaCategoria'); if(m) m.showModal(); else window.location.href='/';" class="flex flex-col items-center text-slate-400 hover:text-indigo-600 transition">
+            <i class="ph ph-tag text-2xl"></i>
+            <span class="text-[10px] font-semibold mt-0.5">Categorias</span>
+        </button>
     </div>
 
+    <script>
+        // Modo Privacidade (Ocultar Saldos com 1 clique no ícone de olho)
+        function togglePrivacy() {
+            const valores = document.querySelectorAll('.valor-sensivel');
+            const icone = document.getElementById('icone-olho');
+            valores.forEach(el => el.classList.toggle('blur-md'));
+            if (icone) {
+                icone.classList.toggle('ph-eye');
+                icone.classList.toggle('ph-eye-slash');
+            }
+        }
+    </script>
 </body>
 </html>
