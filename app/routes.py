@@ -46,7 +46,6 @@ def estatisticas_despesas():
 # Blueprint do Frontend
 frontend = Blueprint('frontend', __name__)
 
-# Rota principal (MANTEMOS APENAS ESTA VERSÃO COMPLETA)
 @frontend.route('/')
 def index():
     contas = Conta.query.all()
@@ -104,3 +103,11 @@ def front_criar_transacao():
     resposta = make_response()
     resposta.headers['HX-Refresh'] = 'true'
     return resposta
+
+@frontend.route('/frontend/filtro/<int:categoria_id>')
+def filtrar_por_categoria(categoria_id):
+    categoria = Categoria.query.get(categoria_id)
+    transacoes = Transacao.query.filter_by(categoria_id=categoria_id).order_by(Transacao.data.desc()).all()
+    total = sum(t.valor for t in transacoes)
+    
+    return render_template('filtro_resultados.html', transacoes=transacoes, categoria=categoria, total=total)

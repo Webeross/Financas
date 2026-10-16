@@ -17,10 +17,14 @@ def create_app():
         if not Categoria.query.first():
             db.session.add_all([
                 Categoria(nome='Alimentação', tipo='Despesa'),
-                Categoria(nome='Manutenção Peugeot 207', tipo='Despesa'),
                 Categoria(nome='Despesas da Muffin', tipo='Despesa'),
+                Categoria(nome='Despesas da Casa', tipo='Despesa'),
+                Categoria(nome='Financiamento', tipo='Despesa'),
+                Categoria(nome='Manutenção Peugeot 207', tipo='Despesa'),
+                Categoria(nome='Rendimentos', tipo='Receita'),
                 Categoria(nome='Salário', tipo='Receita'),
-                Categoria(nome='Rendimentos', tipo='Receita')
+                Categoria(nome='Vendas', tipo='Receita'),
+                
             ])
             db.session.commit()
         

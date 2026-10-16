@@ -10,7 +10,7 @@ services:
     environment:
       - FLASK_ENV=development
 
-  # O Módulo Mágico: Cria um link seguro HTTPS para o seu telemóvel
+#Tunnel para abrir um link cloudfare
   tunnel:
     image: cloudflare/cloudflared:latest
     command: tunnel --url http://web:5000

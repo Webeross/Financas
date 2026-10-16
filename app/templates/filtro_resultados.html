@@ -1,0 +1,25 @@
+<div class="mt-6 border-t border-slate-100 pt-6 animate-[fadeIn_0.2s_ease-in-out]">
+    <div class="flex justify-between items-end mb-4">
+        <h4 class="text-slate-500 font-semibold text-sm">Histórico: {{ categoria.nome }}</h4>
+        <div class="text-right">
+            <span class="text-xs text-slate-400">Total gasto</span>
+            <p class="text-lg font-bold text-slate-800">R$ {{ "%.2f"|format(total) }}</p>
+        </div>
+    </div>
+
+    <div class="space-y-3 max-h-64 overflow-y-auto pr-2" style="scrollbar-width: thin;">
+        {% for t in transacoes %}
+        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition border border-slate-100">
+            <div>
+                <p class="font-bold text-slate-700 text-sm">{{ t.descricao }}</p>
+                <p class="text-[11px] text-slate-400 font-medium">{{ t.data.strftime('%d/%m/%Y') }}</p>
+            </div>
+            <span class="font-bold text-slate-700 text-sm">R$ {{ "%.2f"|format(t.valor) }}</span>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <p class="text-slate-400 text-sm">Nenhum registo encontrado nesta categoria.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>

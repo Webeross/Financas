@@ -40,7 +40,7 @@
                     <span class="text-xs font-medium text-slate-400 group-hover:text-white transition">Conta</span>
                 </button>
 
-                <button class="flex flex-col items-center gap-2 group">
+                <button onclick="document.getElementById('modalGraficos').showModal()" class="flex flex-col items-center gap-2 group">
                     <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center group-hover:bg-slate-700 group-hover:border-slate-500 transition shadow-lg">
                         <i class="ph ph-chart-pie-slice text-xl md:text-2xl text-amber-400"></i>
                     </div>
@@ -253,4 +253,45 @@
         <button type="submit" class="w-full mt-6 bg-slate-900 text-white py-3 px-4 rounded-xl hover:bg-slate-800 transition font-bold shadow-lg">Registrar Movimentação</button>
     </form>
 </dialog>
+
+<form hx-post="/frontend/transacoes">
+        <!-- ... formulário ... -->
+        <button type="submit" class="w-full mt-6 bg-slate-900 text-white py-3 px-4 rounded-xl hover:bg-slate-800 transition font-bold shadow-lg">Registrar Movimentação</button>
+    </form>
+</dialog>
+
+<!-- MODAL GRÁFICOS MOVIDO PARA DENTRO DO BLOCO -->
+<dialog id="modalGraficos" class="p-6 rounded-3xl shadow-2xl backdrop:bg-slate-900/60 w-full max-w-md border-0">
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-slate-800">Análise de Despesas</h3>
+        <button onclick="document.getElementById('modalGraficos').close()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
+            <i class="ph-bold ph-x"></i>
+        </button>
+    </div>
+
+    <!-- Área de Pílulas (Filtros Dinâmicos) -->
+    <div class="flex gap-2 overflow-x-auto pb-3" style="scrollbar-width: none;">
+        {% for cat in categorias %}
+            {% if cat.tipo == 'Despesa' %}
+            <button 
+                hx-get="/frontend/filtro/{{ cat.id }}" 
+                hx-target="#resultado-filtros" 
+                hx-swap="innerHTML"
+                class="whitespace-nowrap px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-sm font-semibold hover:border-indigo-500 hover:text-indigo-600 focus:bg-indigo-600 focus:text-white focus:border-indigo-600 transition-colors shadow-sm">
+                {{ cat.nome }}
+            </button>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- O HTMX vai injetar os resultados exatamente nesta div -->
+    <div id="resultado-filtros">
+        <div class="mt-8 text-center">
+            <i class="ph ph-hand-pointing text-3xl text-slate-300 mb-2"></i>
+            <p class="text-slate-400 text-sm">Selecione uma categoria acima para filtrar</p>
+        </div>
+    </div>
+</dialog>
+
+<!-- O ENDBLOCK TEM DE SER A ÚLTIMA LINHA -->
 {% endblock %}
