@@ -12,6 +12,110 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        /* Esconder scrollbar horizontal */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Scrollbar invisível/minimalista para o Chat Dark */
+        .chat-scroll::-webkit-scrollbar { width: 4px; }
+        .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); border-radius: 9999px; }
+        .chat-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.4); }
+
+        /* Animação suave de abertura do Widget Flutuante */
+        dialog#modalChatIA[open] {
+            animation: slideUpChat 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes slideUpChat {
+            from { opacity: 0; transform: translateY(24px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Design de Cards Modulares para as respostas da IA (Anti-PDF) */
+        .ai-modern-response {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+        .ai-section-card {
+            background: rgba(30, 41, 59, 0.65);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 1.25rem;
+            padding: 0.95rem 1.1rem;
+            color: #e2e8f0;
+            font-size: 0.84rem;
+            line-height: 1.55;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
+        }
+        .ai-section-card h1, .ai-section-card h2, .ai-section-card h3, .ai-section-card h4 {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #818cf8;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .ai-section-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 9999px;
+            background-color: #6366f1;
+            box-shadow: 0 0 8px #6366f1;
+        }
+        .ai-section-card p {
+            margin-bottom: 0.5rem;
+            color: #cbd5e1;
+        }
+        .ai-section-card p:last-child { margin-bottom: 0; }
+        
+        /* Transforma listas em linhas estilo Widget */
+        .ai-section-card ul, .ai-section-card ol {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+        .ai-section-card li {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 0.85rem;
+            padding: 0.6rem 0.8rem;
+            color: #cbd5e1;
+            line-height: 1.45;
+        }
+        
+        /* Destaque moderno para valores e palavras-chave */
+        .ai-section-card strong {
+            font-weight: 700;
+            color: #f8fafc;
+        }
+        .money-badge {
+            display: inline-block;
+            font-weight: 700;
+            color: #34d399 !important;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            padding: 0.05rem 0.4rem;
+            border-radius: 0.45rem;
+            font-variant-numeric: tabular-nums;
+        }
+        .ai-section-card em {
+            color: #94a3b8;
+            font-style: normal;
+            font-size: 0.82em;
+        }
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased pb-24 md:pb-8">
     
@@ -54,7 +158,6 @@
             <i class="{% if request.path == '/contas-fixas' %}ph-fill{% else %}ph{% endif %} ph-calendar-blank text-2xl"></i>
             <span class="text-[10px] font-semibold mt-0.5">Fixas</span>
         </a>
-        <!-- Botão Central Flutuante no Mobile -->
         <button onclick="typeof abrirModalTransacao === 'function' ? abrirModalTransacao('Despesa') : window.location.href='/'" class="w-12 h-12 -mt-6 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/40 flex items-center justify-center active:scale-95 transition">
             <i class="ph-bold ph-plus text-xl"></i>
         </button>
@@ -69,7 +172,6 @@
     </div>
 
     <script>
-        // Modo Privacidade (Ocultar Saldos com 1 clique no ícone de olho)
         function togglePrivacy() {
             const valores = document.querySelectorAll('.valor-sensivel');
             const icone = document.getElementById('icone-olho');

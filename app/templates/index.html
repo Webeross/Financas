@@ -177,7 +177,7 @@
     </div>
 </div>
 
-<!-- MODAL: NOVA TRANSAÇÃO (INTELIGENTE PARA DESPESA OU RECEITA) -->
+<!-- MODAL: NOVA TRANSAÇÃO -->
 <dialog id="modalNovaTransacao" class="p-6 rounded-3xl shadow-2xl backdrop:bg-slate-900/60 w-full max-w-md border-0">
     <div class="flex justify-between items-center mb-5">
         <h3 id="tituloModalTransacao" class="text-xl font-bold text-slate-800">Nova Transação</h3>
@@ -186,7 +186,6 @@
         </button>
     </div>
 
-    <!-- Alternador Rápido Despesa / Receita -->
     <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl mb-5">
         <button type="button" id="tabDespesa" onclick="alternarTipoModal('Despesa')" class="py-2 rounded-xl text-sm font-bold transition">Despesa</button>
         <button type="button" id="tabReceita" onclick="alternarTipoModal('Receita')" class="py-2 rounded-xl text-sm font-bold transition">Receita</button>
@@ -294,7 +293,7 @@
         </button>
     </div>
 
-    <div class="flex gap-2 overflow-x-auto pb-3" style="scrollbar-width: none;">
+    <div class="flex gap-2 overflow-x-auto pb-3 no-scrollbar">
         {% for cat in categorias %}
             {% if cat.tipo == 'Despesa' %}
             <button 
@@ -359,87 +358,105 @@
         </button>
     </form>
 
-    <!-- Spinner enquanto o Gemini lê o PDF -->
     <div id="loading-pdf" class="htmx-indicator py-8 text-center">
         <i class="ph ph-spinner animate-spin text-3xl text-indigo-600 mb-2"></i>
         <p class="text-sm font-semibold text-slate-600">Lendo transações e classificando categorias...</p>
     </div>
 
-    <!-- Onde a tabela de revisão (revisao_importacao.html) será injetada -->
     <div id="area-revisao-pdf" class="mt-4"></div>
 </dialog>
 
-<!-- Botão Flutuante do Assistente Gemini (Canto Inferior Direito) -->
+<!-- Botão Flutuante do Assistente Gemini -->
 <button onclick="document.getElementById('modalChatIA').showModal()" 
-        class="fixed bottom-20 md:bottom-8 right-4 md:right-8 z-40 bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-4 rounded-full shadow-xl shadow-indigo-500/30 hover:scale-105 transition flex items-center gap-2">
-    <i class="ph-fill ph-sparkle text-2xl"></i>
-    <span class="hidden md:inline font-bold text-sm pr-1">Consultor IA</span>
+        class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 bg-slate-900 hover:bg-slate-800 text-white p-3.5 md:px-5 md:py-3.5 rounded-2xl shadow-2xl shadow-indigo-500/20 border border-white/10 hover:border-indigo-500/50 hover:scale-105 transition-all flex items-center gap-2.5 group">
+    <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-slate-950 shadow-sm">
+        <i class="ph-fill ph-sparkle text-base"></i>
+    </div>
+    <span class="hidden md:inline font-bold text-xs tracking-wide text-slate-200 group-hover:text-white">Copilot</span>
 </button>
 
-<!-- Modal / Drawer do Chat -->
-<dialog id="modalChatIA" class="p-0 rounded-3xl shadow-2xl backdrop:bg-slate-900/60 w-full max-w-lg border-0 overflow-hidden">
-    <div class="flex flex-col h-[80vh] max-h-[650px] bg-slate-50">
-        
-        <!-- Header do Chat -->
-        <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+<!-- WIDGET FLUTUANTE: GEMINI FINANCE COPILOT (ESTÉTICA DARK GLASS MODERNA) -->
+<dialog id="modalChatIA" 
+        onclick="if(event.target === this) this.close()"
+        class="fixed inset-0 md:inset-auto md:bottom-6 md:right-6 m-auto md:m-0 p-0 w-[94vw] sm:w-[430px] h-[84vh] md:h-[650px] max-h-[720px] rounded-[2.25rem] bg-slate-950/95 backdrop-blur-2xl text-slate-100 shadow-[0_24px_70px_rgba(0,0,0,0.65)] ring-1 ring-white/10 border-0 overflow-hidden backdrop:bg-slate-950/50 backdrop:backdrop-blur-xs">
+    
+    <div class="flex flex-col h-full relative">
+        <!-- Luzes de fundo sutis (Ambient Glow) -->
+        <div class="pointer-events-none absolute -top-20 -right-20 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl"></div>
+        <div class="pointer-events-none absolute -bottom-20 -left-20 w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl"></div>
+
+        <!-- 1. Header Flutuante -->
+        <div class="px-5 pt-5 pb-3.5 flex justify-between items-center border-b border-white/[0.06] shrink-0 relative z-10">
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400">
-                    <i class="ph-fill ph-sparkle text-xl"></i>
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-indigo-400 to-cyan-400 p-[1px] shadow-lg shadow-indigo-500/20">
+                    <div class="w-full h-full bg-slate-950 rounded-[15px] flex items-center justify-center text-indigo-400">
+                        <i class="ph-fill ph-sparkle text-xl"></i>
+                    </div>
                 </div>
                 <div>
-                    <h3 class="font-bold text-sm">Gemini Finance Copilot</h3>
-                    <p class="text-[11px] text-emerald-400 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Conectado ao seu SQLite
-                    </p>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-white font-bold text-sm tracking-tight">Wallet Copilot</h3>
+                        <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-300 rounded-md border border-indigo-500/20">AI</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+                        <span class="text-slate-400 text-[11px] font-medium">SQLite Live Sync</span>
+                    </div>
                 </div>
             </div>
-            <button onclick="document.getElementById('modalChatIA').close()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
-                <i class="ph-bold ph-x"></i>
+            
+            <button onclick="document.getElementById('modalChatIA').close()" class="w-8 h-8 rounded-xl bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white flex items-center justify-center transition">
+                <i class="ph-bold ph-x text-sm"></i>
             </button>
         </div>
 
-        <!-- Sugestões Rápidas (1 Clique) -->
-        <div class="flex gap-2 overflow-x-auto p-3 bg-white border-b border-slate-100" style="scrollbar-width: none;">
-            <button onclick="enviarPerguntaRapida('Faça um diagnóstico dos meus gastos atuais e aponte onde estou gastando mais.')" 
-                    class="whitespace-nowrap px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold hover:bg-indigo-100 transition">
-                📊 Diagnóstico do mês
+        <!-- 2. Chips de Ação Rápida (Glass Pills) -->
+        <div class="flex gap-2 overflow-x-auto px-5 py-3 border-b border-white/[0.04] shrink-0 no-scrollbar relative z-10">
+            <button type="button" onclick="enviarPerguntaRapida('Faça um diagnóstico dos meus gastos atuais e aponte onde estou gastando mais.')" 
+                    class="whitespace-nowrap px-3 py-1.5 bg-white/[0.04] hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-200 rounded-xl text-xs font-medium border border-white/[0.07] hover:border-indigo-500/30 transition flex items-center gap-1.5">
+                <i class="ph-duotone ph-chart-polar text-indigo-400 text-sm"></i> Diagnóstico
             </button>
-            <button onclick="enviarPerguntaRapida('Com base no meu saldo atual e nas contas fixas/parceladas, quanto posso gastar por dia até o fim do mês?')" 
-                    class="whitespace-nowrap px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold hover:bg-emerald-100 transition">
-                🔮 Limite diário seguro
+            <button type="button" onclick="enviarPerguntaRapida('Com base no meu saldo atual e nas contas fixas/parceladas, quanto posso gastar por dia até o fim do mês?')" 
+                    class="whitespace-nowrap px-3 py-1.5 bg-white/[0.04] hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-200 rounded-xl text-xs font-medium border border-white/[0.07] hover:border-emerald-500/30 transition flex items-center gap-1.5">
+                <i class="ph-duotone ph-shield-check text-emerald-400 text-sm"></i> Teto diário
             </button>
-            <button onclick="enviarPerguntaRapida('Quais dicas práticas você me dá para economizar com base no meu extrato?')" 
-                    class="whitespace-nowrap px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs font-semibold hover:bg-amber-100 transition">
-                💡 Dicas de economia
+            <button type="button" onclick="enviarPerguntaRapida('Quais dicas práticas você me dá para economizar com base no meu extrato?')" 
+                    class="whitespace-nowrap px-3 py-1.5 bg-white/[0.04] hover:bg-amber-500/20 text-slate-300 hover:text-amber-200 rounded-xl text-xs font-medium border border-white/[0.07] hover:border-amber-500/30 transition flex items-center gap-1.5">
+                <i class="ph-duotone ph-lightning text-amber-400 text-sm"></i> Otimizar gastos
             </button>
         </div>
 
-        <!-- Área de Mensagens -->
-        <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4">
-            <div class="bg-white border border-slate-200 p-3.5 rounded-2xl rounded-tl-none text-sm text-slate-700 shadow-sm max-w-[85%]">
-                Olá, Eduardo! Já carreguei o saldo das suas contas, seus gastos recentes e suas contas fixas. O que você quer analisar ou planejar hoje?
+        <!-- 3. Stream de Conversa (Sem cara de documento) -->
+        <div id="chat-container" class="flex-1 overflow-y-auto px-5 py-4 space-y-4 chat-scroll relative z-10">
+            <div class="ai-section-card" data-md-parsed="true">
+                <p class="text-slate-300 text-xs leading-relaxed">
+                    Olá, <strong class="text-white">Eduardo</strong>. Estou conectado às suas contas, extrato e despesas fixas. Toque em um atalho acima ou simule qualquer cenário abaixo.
+                </p>
             </div>
         </div>
 
-        <!-- Indicador de "Pensando..." do HTMX -->
-        <div id="chat-loading" class="htmx-indicator px-4 py-2 text-xs text-indigo-600 font-semibold flex items-center gap-2">
-            <i class="ph ph-spinner animate-spin text-base"></i> Analisando suas finanças...
+        <!-- 4. Indicador de Processamento -->
+        <div id="chat-loading" class="htmx-indicator px-5 py-2 bg-slate-900/90 border-t border-white/[0.05] text-xs text-indigo-300 font-medium flex items-center gap-2 shrink-0 relative z-10">
+            <i class="ph-bold ph-circle-notch animate-spin text-indigo-400 text-sm"></i> Processando métricas do SQLite...
         </div>
 
-        <!-- Input de Envio -->
-        <form id="formChatIA" 
-              hx-post="/frontend/chat" 
-              hx-target="#chat-container" 
-              hx-swap="beforeend" 
-              hx-indicator="#chat-loading"
-              hx-on::after-request="this.reset(); const c = document.getElementById('chat-container'); c.scrollTop = c.scrollHeight;"
-              class="p-3 bg-white border-t border-slate-200 flex gap-2">
-            <input type="text" id="inputMensagemChat" name="mensagem" required placeholder="Pergunte sobre seus gastos ou simule uma compra..." 
-                   class="flex-1 bg-slate-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 border border-transparent">
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-xl flex items-center justify-center transition">
-                <i class="ph-bold ph-paper-plane-right text-lg"></i>
-            </button>
-        </form>
+        <!-- 5. Input Flutuante Estilo Comando -->
+        <div class="p-4 pt-2 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent shrink-0 relative z-10">
+            <form id="formChatIA" 
+                  hx-post="/frontend/chat" 
+                  hx-target="#chat-container" 
+                  hx-swap="beforeend" 
+                  hx-indicator="#chat-loading"
+                  hx-on::after-request="this.reset(); formatarMensagensChat();"
+                  class="flex items-center gap-2 bg-slate-900/90 p-1.5 pl-4 rounded-2xl border border-white/10 focus-within:border-indigo-500/60 focus-within:ring-4 focus-within:ring-indigo-500/15 transition-all shadow-inner">
+                <input type="text" id="inputMensagemChat" name="mensagem" required autocomplete="off"
+                       placeholder="Simule uma compra ou pergunte algo..." 
+                       class="w-full bg-transparent text-xs sm:text-sm text-white outline-none placeholder:text-slate-500">
+                <button type="submit" class="w-9 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shrink-0 transition shadow-md shadow-indigo-600/30">
+                    <i class="ph-bold ph-arrow-up text-base"></i>
+                </button>
+            </form>
+        </div>
     </div>
 </dialog>
 
@@ -497,6 +514,66 @@
         input.value = texto;
         htmx.trigger('#formChatIA', 'submit');
     }
+
+    // Transforma o HTML branco do backend em Cards Modulares Dark e estiliza balões do usuário
+    function formatarMensagensChat() {
+        const container = document.getElementById('chat-container');
+        if (!container || typeof marked === 'undefined') return;
+
+        Array.from(container.children).forEach(wrapper => {
+            // Procura elementos filhos ou o próprio elemento que ainda não foram estilizados
+            const alvos = wrapper.querySelectorAll ? [wrapper, ...wrapper.querySelectorAll('div')] : [wrapper];
+            
+            alvos.forEach(el => {
+                if (el.dataset.mdParsed === 'true') return;
+
+                const PossuiSubDivs = el.querySelector('div') !== null;
+                if (PossuiSubDivs) return;
+
+                const rawHtml = el.innerHTML.trim();
+                if (!rawHtml) return;
+
+                // Identifica se é uma resposta da IA (contém Markdown ou classes brancas antigas)
+                const isAI = rawHtml.includes('**') || rawHtml.includes('###') || rawHtml.includes('* ') || el.className.includes('bg-white');
+
+                if (isAI) {
+                    // Limpa classes brancas/quadradas enviadas pelo Python
+                    el.className = 'ai-modern-response w-full';
+
+                    const textoLimpo = rawHtml
+                        .replace(/<br\s*\/?>/gi, '\n')
+                        .replace(/&nbsp;/g, ' ');
+
+                    // Divide o relatório em blocos independentes por '---' ou antes de cada '###'
+                    const secoes = textoLimpo
+                        .split(/\n---\n|\n(?=#{1,3}\s)/)
+                        .map(s => s.trim())
+                        .filter(Boolean);
+
+                    el.innerHTML = secoes.map(secao => {
+                        let htmlSecao = marked.parse(secao);
+                        // Transforma valores em R$ dentro de <strong> em badges verdes estilo fintech
+                        htmlSecao = htmlSecao.replace(/<strong>([^<]*R\$[^<]*)<\/strong>/g, '<strong class="money-badge">$1</strong>');
+                        return `<div class="ai-section-card">${htmlSecao}</div>`;
+                    }).join('');
+
+                    el.dataset.mdParsed = 'true';
+                } else {
+                    // Estiliza a pergunta enviada pelo usuário como uma pílula moderna à direita
+                    el.className = 'ml-auto bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-br-xs text-xs sm:text-sm font-medium shadow-md shadow-indigo-500/20 max-w-[82%] w-fit';
+                    el.dataset.mdParsed = 'true';
+                }
+            });
+        });
+
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    }
+
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target && evt.detail.target.id === 'chat-container') {
+            formatarMensagensChat();
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', function() {
         fetch('/api/estatisticas/despesas')
