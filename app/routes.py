@@ -1,8 +1,91 @@
+import re
 from flask import Blueprint, request, jsonify, render_template, render_template_string, make_response, redirect, url_for, session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from datetime import datetime
 from .models import db, Conta, Categoria, Transacao, ContaAPagar
 from .ai_agent import analisar_extrato_pdf, responder_chat_financeiro
+
+# --- FUNÇÕES AUXILIARES DE DETECÇÃO MULTI-BANCOS (XP, NUBANK, MERCADO PAGO) ---
+
+# Exige "Parcela" ou "Parc" antes dos números (suporta "1/5", "8/8", "6 de 6", "01 de 10")
+REGEX_PARCELA = re.compile(
+    r'(?:parcela|parc\.?)\s*(\d{1,2})\s*(?:/|de)\s*(\d{1,2})\b',
+    re.IGNORECASE
+)
+
+def extrair_dados_parcela(descricao):
+    """
+    Identifica padrões de parcelamento na descrição de diferentes bancos:
+    - XP / Nubank: 'Belfort Mattos Instit - Parcela 1/5' ou 'Kallan Calcados - Parcela 8/8'
+    - Mercado Pago: 'YPE SOUND Parcela 6 de 6'
+    Retorna (descricao_limpa, parcela_atual, total_parcelas) ou None.
+    """
+    if not descricao:
+        return None
+
+    match = REGEX_PARCELA.search(descricao)
+    if not match:
+        return None
+
+    parcela_atual = int(match.group(1))
+    total_parcelas = int(match.group(2))
+
+    # Validação de segurança para evitar falsos positivos
+    if total_parcelas <= 1 or parcela_atual < 1 or parcela_atual > total_parcelas or total_parcelas > 72:
+        return None
+
+    # Remove o trecho "- Parcela X/Y" ou "Parcela X de Y" para deixar o nome limpo
+    descricao_limpa = re.sub(
+        r'\s*[-–—•]?\s*\(?(?:parcela|parc\.?)\s*\d{1,2}\s*(?:/|de)\s*\d{1,2}\)?\b',
+        '',
+        descricao,
+        flags=re.IGNORECASE
+    ).strip()
+
+    if not descricao_limpa:
+        descricao_limpa = descricao.strip()
+
+    return descricao_limpa, parcela_atual, total_parcelas
+
+
+def sincronizar_parcela_automatica(descricao, valor, categoria_id, data_transacao=None):
+    """
+    Cria ou atualiza automaticamente o registro em ContaAPagar (Fixas & Parcelas)
+    sempre que uma transação parcelada é detectada.
+    """
+    dados = extrair_dados_parcela(descricao)
+    if not dados:
+        return False
+
+    descricao_limpa, parcela_atual, total_parcelas = dados
+    dia_venc = data_transacao.day if data_transacao else datetime.utcnow().day
+
+    # Verifica se já existe esse parcelamento cadastrado para não duplicar
+    conta_existente = ContaAPagar.query.filter(
+        ContaAPagar.descricao.ilike(f"{descricao_limpa}%"),
+        ContaAPagar.tipo == 'Parcelada',
+        ContaAPagar.total_parcelas == total_parcelas
+    ).first()
+
+    if conta_existente:
+        # Atualiza para a parcela mais recente caso importe faturas futuras
+        if parcela_atual >= conta_existente.parcela_atual:
+            conta_existente.parcela_atual = parcela_atual
+            conta_existente.valor = valor
+    else:
+        nova_parcelada = ContaAPagar(
+            descricao=descricao_limpa,
+            valor=valor,
+            dia_vencimento=dia_venc,
+            tipo='Parcelada',
+            parcela_atual=parcela_atual,
+            total_parcelas=total_parcelas,
+            categoria_id=categoria_id
+        )
+        db.session.add(nova_parcelada)
+
+    return True
+
 
 # Blueprint da API JSON
 api = Blueprint('api', __name__)
@@ -129,6 +212,11 @@ def front_criar_transacao():
         descricao=descricao
     )
     db.session.add(nova_transacao)
+
+    # Se o usuário digitar uma descrição com parcela manualmente, também envia para Fixas & Parcelas
+    if categoria.tipo == 'Despesa':
+        sincronizar_parcela_automatica(descricao, valor, categoria.id, datetime.utcnow())
+
     db.session.commit()
     
     resposta = make_response()
@@ -198,7 +286,7 @@ def pagar_conta_fixa(id):
     # 2. Registra no extrato como uma transação real
     desc_extrato = conta_pagar.descricao
     if conta_pagar.tipo == 'Parcelada':
-        desc_extrato += f" ({conta_pagar.parcela_atual}/{conta_pagar.total_parcelas})"
+        desc_extrato += f" - Parcela {conta_pagar.parcela_atual}/{conta_pagar.total_parcelas}"
         
     nova_transacao = Transacao(
         conta_id=conta_bancaria.id,
@@ -227,6 +315,22 @@ def excluir_conta_fixa(id):
 
 @frontend.route('/contas-fixas')
 def contas_fixas():
+    # Varre transações já importadas procurando parcelas ("Parcela 1/5", "Parcela 6 de 6", etc.)
+    transacoes_candidatas = Transacao.query.filter(
+        or_(
+            Transacao.descricao.ilike('%parcela%'),
+            Transacao.descricao.ilike('%parc%')
+        )
+    ).all()
+    
+    alterou = False
+    for t in transacoes_candidatas:
+        if sincronizar_parcela_automatica(t.descricao, t.valor, t.categoria_id, t.data):
+            alterou = True
+            
+    if alterou:
+        db.session.commit()
+
     contas_a_pagar = ContaAPagar.query.order_by(ContaAPagar.dia_vencimento.asc()).all()
     categorias = Categoria.query.filter_by(tipo='Despesa').all()
     contas = Conta.query.all()
@@ -251,6 +355,16 @@ def front_importar_pdf():
         conta = Conta.query.get_or_404(int(conta_id))
         
         resultado = analisar_extrato_pdf(pdf_bytes, categorias)
+        transacoes_extraidas = resultado.get('transacoes', [])
+
+        # Marca visualmente quais itens do PDF foram reconhecidos como parcelas (XP, Nubank, Mercado Pago)
+        for t in transacoes_extraidas:
+            dados_parc = extrair_dados_parcela(t.get('descricao', ''))
+            if dados_parc:
+                t['is_parcela'] = True
+                t['info_parcela'] = f"{dados_parc[1]}/{dados_parc[2]}"
+            else:
+                t['is_parcela'] = False
         
         # HTML embutido: dispensa criar o arquivo revisao_importacao.html
         template_revisao = """
@@ -261,14 +375,24 @@ def front_importar_pdf():
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">
                     {{ transacoes|length }} lançamentos encontrados para {{ conta.nome }}
                 </span>
+                <span class="text-[11px] font-semibold text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-full">
+                    Parcelas sobem p/ Fixas automaticamente
+                </span>
             </div>
 
             <div class="max-h-64 overflow-y-auto space-y-2 pr-1" style="scrollbar-width: thin;">
                 {% for t in transacoes %}
-                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 p-2.5 {% if t.is_parcela %}bg-cyan-50/50 border-cyan-200{% else %}bg-slate-50 border-slate-200{% endif %} rounded-xl border text-xs">
                     <input type="checkbox" name="selecionado" value="{{ loop.index0 }}" checked class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
                     <input type="date" name="data" value="{{ t.data }}" class="bg-white border border-slate-200 rounded-lg px-2 py-1 w-28">
-                    <input type="text" name="descricao" value="{{ t.descricao }}" class="bg-white border border-slate-200 rounded-lg px-2 py-1 flex-1 font-medium text-slate-700 min-w-[120px]">
+                    <div class="flex-1 flex items-center gap-1.5 min-w-[140px]">
+                        <input type="text" name="descricao" value="{{ t.descricao }}" class="bg-white border border-slate-200 rounded-lg px-2 py-1 w-full font-medium text-slate-700">
+                        {% if t.is_parcela %}
+                        <span class="shrink-0 px-2 py-0.5 bg-cyan-500 text-slate-950 font-extrabold text-[10px] rounded-md" title="Subirá para Fixas & Parcelas">
+                            {{ t.info_parcela }}
+                        </span>
+                        {% endif %}
+                    </div>
                     <input type="number" step="0.01" name="valor" value="{{ '%.2f'|format(t.valor) }}" class="bg-white border border-slate-200 rounded-lg px-2 py-1 w-20 font-bold text-right">
                     <select name="categoria_id" class="bg-white border border-slate-200 rounded-lg px-2 py-1 w-36">
                         {% for cat in categorias %}
@@ -286,7 +410,7 @@ def front_importar_pdf():
         """
         return render_template_string(
             template_revisao,
-            transacoes=resultado['transacoes'],
+            transacoes=transacoes_extraidas,
             categorias=categorias,
             conta=conta
         )
@@ -308,6 +432,7 @@ def confirmar_importacao():
         i = int(idx)
         valor = float(valores[i])
         cat_id = int(categorias_ids[i])
+        descricao = descricoes[i]
         categoria = Categoria.query.get(cat_id)
         
         try:
@@ -324,10 +449,14 @@ def confirmar_importacao():
             conta_id=conta.id,
             categoria_id=cat_id,
             valor=valor,
-            descricao=descricoes[i],
+            descricao=descricao,
             data=data_obj
         )
         db.session.add(nova_t)
+
+        # Detecta e sobe automaticamente parcelas (XP, Nubank, Mercado Pago) para Fixas & Parcelas
+        if not categoria or categoria.tipo == 'Despesa':
+            sincronizar_parcela_automatica(descricao, valor, cat_id, data_obj)
         
     db.session.commit()
     return redirect(url_for('frontend.index'))
@@ -346,17 +475,17 @@ def chat_financeiro():
         historico.append({"role": "model", "text": resposta_ia})
         session['chat_history'] = historico[-10:]
     except Exception as e:
-        resposta_ia = f"⚠️ Erro ao consultar o Gemini: {str(e)}"
+        resposta_ia = f"Erro ao consultar o Gemini: {str(e)}"
     
-    # HTML embutido: dispensa criar o arquivo chat_mensagem.html
+    # HTML embutido compatível com o parser de Cards Modulares Dark do index.html
     template_chat = """
     <div class="flex justify-end">
-        <div class="bg-indigo-600 text-white p-3.5 rounded-2xl rounded-tr-none text-sm shadow-sm max-w-[85%]">
+        <div class="ml-auto bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-br-xs text-xs sm:text-sm font-medium shadow-md shadow-indigo-500/20 max-w-[82%] w-fit" data-md-parsed="true">
             {{ pergunta }}
         </div>
     </div>
-    <div class="flex justify-start mt-3">
-        <div class="bg-white border border-slate-200 p-3.5 rounded-2xl rounded-tl-none text-sm text-slate-700 shadow-sm max-w-[85%] whitespace-pre-line">{{ resposta }}</div>
+    <div class="flex justify-start mt-3 w-full">
+        <div class="bg-white">{{ resposta }}</div>
     </div>
     """
     return render_template_string(template_chat, pergunta=pergunta, resposta=resposta_ia)
