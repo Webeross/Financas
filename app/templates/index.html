@@ -125,16 +125,22 @@
         </div>
     </div>
 
-    <!-- 3. EXTRATO COM BUSCA RÁPIDA E ESTORNO -->
+    <!-- 3. EXTRATO COM BUSCA RÁPIDA, IMPORTAÇÃO DE PDF E ESTORNO -->
     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8">
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
             <div>
                 <h3 class="text-lg font-bold text-slate-800">Últimas Movimentações</h3>
                 <p class="text-xs text-slate-400">Histórico recente de lançamentos</p>
             </div>
-            <div class="relative">
-                <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <input type="text" id="buscaExtrato" onkeyup="filtrarExtrato()" placeholder="Buscar lançamento..." class="pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-64 transition">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <div class="relative flex-1 sm:w-64">
+                    <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="buscaExtrato" onkeyup="filtrarExtrato()" placeholder="Buscar lançamento..." class="pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-full transition">
+                </div>
+                <button onclick="document.getElementById('modalImportarPDF').showModal()" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl text-sm font-bold flex items-center gap-1.5 transition whitespace-nowrap" title="Importar Extrato PDF com IA">
+                    <i class="ph-bold ph-file-pdf text-lg"></i>
+                    <span class="hidden sm:inline">Importar PDF</span>
+                </button>
             </div>
         </div>
         
@@ -310,8 +316,134 @@
     </div>
 </dialog>
 
+<!-- MODAL: IMPORTAR EXTRATO PDF COM GEMINI -->
+<dialog id="modalImportarPDF" class="p-6 rounded-3xl shadow-2xl backdrop:bg-slate-900/60 w-full max-w-2xl border-0">
+    <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <i class="ph-fill ph-sparkle text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-slate-800">Importar Extrato (PDF)</h3>
+                <p class="text-xs text-slate-400">O Gemini vai ler e categorizar seus gastos automaticamente</p>
+            </div>
+        </div>
+        <button onclick="document.getElementById('modalImportarPDF').close()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
+            <i class="ph-bold ph-x"></i>
+        </button>
+    </div>
+
+    <form hx-post="/frontend/importar-pdf" 
+          hx-encoding="multipart/form-data" 
+          hx-target="#area-revisao-pdf" 
+          hx-indicator="#loading-pdf"
+          class="space-y-4">
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Conta do Extrato</label>
+                <select name="conta_id" required class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none">
+                    {% for conta in contas %}
+                    <option value="{{ conta.id }}">{{ conta.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">Arquivo PDF</label>
+                <input type="file" name="extrato_pdf" accept="application/pdf" required class="w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 border border-slate-200 rounded-xl p-1.5 bg-slate-50">
+            </div>
+        </div>
+
+        <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 px-4 rounded-xl transition font-bold text-sm shadow-lg flex items-center justify-center gap-2">
+            <i class="ph-bold ph-magic-wand"></i> Analisar PDF com Gemini
+        </button>
+    </form>
+
+    <!-- Spinner enquanto o Gemini lê o PDF -->
+    <div id="loading-pdf" class="htmx-indicator py-8 text-center">
+        <i class="ph ph-spinner animate-spin text-3xl text-indigo-600 mb-2"></i>
+        <p class="text-sm font-semibold text-slate-600">Lendo transações e classificando categorias...</p>
+    </div>
+
+    <!-- Onde a tabela de revisão (revisao_importacao.html) será injetada -->
+    <div id="area-revisao-pdf" class="mt-4"></div>
+</dialog>
+
+<!-- Botão Flutuante do Assistente Gemini (Canto Inferior Direito) -->
+<button onclick="document.getElementById('modalChatIA').showModal()" 
+        class="fixed bottom-20 md:bottom-8 right-4 md:right-8 z-40 bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-4 rounded-full shadow-xl shadow-indigo-500/30 hover:scale-105 transition flex items-center gap-2">
+    <i class="ph-fill ph-sparkle text-2xl"></i>
+    <span class="hidden md:inline font-bold text-sm pr-1">Consultor IA</span>
+</button>
+
+<!-- Modal / Drawer do Chat -->
+<dialog id="modalChatIA" class="p-0 rounded-3xl shadow-2xl backdrop:bg-slate-900/60 w-full max-w-lg border-0 overflow-hidden">
+    <div class="flex flex-col h-[80vh] max-h-[650px] bg-slate-50">
+        
+        <!-- Header do Chat -->
+        <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400">
+                    <i class="ph-fill ph-sparkle text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm">Gemini Finance Copilot</h3>
+                    <p class="text-[11px] text-emerald-400 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Conectado ao seu SQLite
+                    </p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('modalChatIA').close()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+                <i class="ph-bold ph-x"></i>
+            </button>
+        </div>
+
+        <!-- Sugestões Rápidas (1 Clique) -->
+        <div class="flex gap-2 overflow-x-auto p-3 bg-white border-b border-slate-100" style="scrollbar-width: none;">
+            <button onclick="enviarPerguntaRapida('Faça um diagnóstico dos meus gastos atuais e aponte onde estou gastando mais.')" 
+                    class="whitespace-nowrap px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold hover:bg-indigo-100 transition">
+                📊 Diagnóstico do mês
+            </button>
+            <button onclick="enviarPerguntaRapida('Com base no meu saldo atual e nas contas fixas/parceladas, quanto posso gastar por dia até o fim do mês?')" 
+                    class="whitespace-nowrap px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold hover:bg-emerald-100 transition">
+                🔮 Limite diário seguro
+            </button>
+            <button onclick="enviarPerguntaRapida('Quais dicas práticas você me dá para economizar com base no meu extrato?')" 
+                    class="whitespace-nowrap px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs font-semibold hover:bg-amber-100 transition">
+                💡 Dicas de economia
+            </button>
+        </div>
+
+        <!-- Área de Mensagens -->
+        <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4">
+            <div class="bg-white border border-slate-200 p-3.5 rounded-2xl rounded-tl-none text-sm text-slate-700 shadow-sm max-w-[85%]">
+                Olá, Eduardo! Já carreguei o saldo das suas contas, seus gastos recentes e suas contas fixas. O que você quer analisar ou planejar hoje?
+            </div>
+        </div>
+
+        <!-- Indicador de "Pensando..." do HTMX -->
+        <div id="chat-loading" class="htmx-indicator px-4 py-2 text-xs text-indigo-600 font-semibold flex items-center gap-2">
+            <i class="ph ph-spinner animate-spin text-base"></i> Analisando suas finanças...
+        </div>
+
+        <!-- Input de Envio -->
+        <form id="formChatIA" 
+              hx-post="/frontend/chat" 
+              hx-target="#chat-container" 
+              hx-swap="beforeend" 
+              hx-indicator="#chat-loading"
+              hx-on::after-request="this.reset(); const c = document.getElementById('chat-container'); c.scrollTop = c.scrollHeight;"
+              class="p-3 bg-white border-t border-slate-200 flex gap-2">
+            <input type="text" id="inputMensagemChat" name="mensagem" required placeholder="Pergunte sobre seus gastos ou simule uma compra..." 
+                   class="flex-1 bg-slate-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 border border-transparent">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-xl flex items-center justify-center transition">
+                <i class="ph-bold ph-paper-plane-right text-lg"></i>
+            </button>
+        </form>
+    </div>
+</dialog>
+
 <script>
-    // Filtra as opções de categoria de acordo com o botão clicado (Despesa vs Receita)
     function abrirModalTransacao(tipo) {
         const modal = document.getElementById('modalNovaTransacao');
         alternarTipoModal(tipo);
@@ -340,7 +472,6 @@
             btnSubmit.textContent = 'Confirmar Entrada';
         }
 
-        // Esconde categorias que não pertencem ao tipo selecionado
         let primeiraOpcaoValida = null;
         Array.from(selectCat.options).forEach(opt => {
             if (opt.dataset.tipo === tipo) {
@@ -353,7 +484,6 @@
         if (primeiraOpcaoValida) selectCat.value = primeiraOpcaoValida;
     }
 
-    // Filtro instantâneo de busca no Extrato
     function filtrarExtrato() {
         const termo = document.getElementById('buscaExtrato').value.toLowerCase();
         document.querySelectorAll('.item-extrato').forEach(item => {
@@ -362,7 +492,12 @@
         });
     }
 
-    // Carregamento do Gráfico Donut
+    function enviarPerguntaRapida(texto) {
+        const input = document.getElementById('inputMensagemChat');
+        input.value = texto;
+        htmx.trigger('#formChatIA', 'submit');
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         fetch('/api/estatisticas/despesas')
             .then(response => response.json())

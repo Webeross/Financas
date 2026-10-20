@@ -1,8 +1,10 @@
-from flask import Blueprint, request, jsonify, render_template, make_response, redirect, url_for
+from flask import Blueprint, request, jsonify, render_template, render_template_string, make_response, redirect, url_for, session
 from sqlalchemy import func
 from datetime import datetime
 from .models import db, Conta, Categoria, Transacao, ContaAPagar
+from .ai_agent import analisar_extrato_pdf, responder_chat_financeiro
 
+# Blueprint da API JSON
 api = Blueprint('api', __name__)
 
 @api.route('/ping', methods=['GET'])
@@ -234,3 +236,127 @@ def contas_fixas():
                            categorias=categorias, 
                            contas=contas,
                            total_fixas=total_fixas)
+
+@frontend.route('/frontend/importar-pdf', methods=['POST'])
+def front_importar_pdf():
+    arquivo = request.files.get('extrato_pdf')
+    conta_id = request.form.get('conta_id')
+    
+    if not arquivo or arquivo.filename == '' or not conta_id:
+        return "<div class='p-3 bg-red-50 text-red-600 rounded-xl text-xs font-semibold'>Selecione uma conta e um arquivo PDF válido.</div>"
+
+    try:
+        pdf_bytes = arquivo.read()
+        categorias = Categoria.query.all()
+        conta = Conta.query.get_or_404(int(conta_id))
+        
+        resultado = analisar_extrato_pdf(pdf_bytes, categorias)
+        
+        # HTML embutido: dispensa criar o arquivo revisao_importacao.html
+        template_revisao = """
+        <form action="/frontend/confirmar-importacao" method="POST" class="border-t border-slate-100 pt-4 mt-4">
+            <input type="hidden" name="conta_id" value="{{ conta.id }}">
+            
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    {{ transacoes|length }} lançamentos encontrados para {{ conta.nome }}
+                </span>
+            </div>
+
+            <div class="max-h-64 overflow-y-auto space-y-2 pr-1" style="scrollbar-width: thin;">
+                {% for t in transacoes %}
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                    <input type="checkbox" name="selecionado" value="{{ loop.index0 }}" checked class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                    <input type="date" name="data" value="{{ t.data }}" class="bg-white border border-slate-200 rounded-lg px-2 py-1 w-28">
+                    <input type="text" name="descricao" value="{{ t.descricao }}" class="bg-white border border-slate-200 rounded-lg px-2 py-1 flex-1 font-medium text-slate-700 min-w-[120px]">
+                    <input type="number" step="0.01" name="valor" value="{{ '%.2f'|format(t.valor) }}" class="bg-white border border-slate-200 rounded-lg px-2 py-1 w-20 font-bold text-right">
+                    <select name="categoria_id" class="bg-white border border-slate-200 rounded-lg px-2 py-1 w-36">
+                        {% for cat in categorias %}
+                        <option value="{{ cat.id }}" {% if cat.id == t.categoria_id %}selected{% endif %}>{{ cat.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white py-3 px-4 rounded-xl font-bold text-sm shadow-lg transition">
+                Confirmar e Importar Selecionados
+            </button>
+        </form>
+        """
+        return render_template_string(
+            template_revisao,
+            transacoes=resultado['transacoes'],
+            categorias=categorias,
+            conta=conta
+        )
+    except Exception as e:
+        return f"<div class='p-3 bg-red-50 text-red-600 rounded-xl text-xs font-semibold'>Erro ao processar PDF com Gemini: {str(e)}</div>"
+
+@frontend.route('/frontend/confirmar-importacao', methods=['POST'])
+def confirmar_importacao():
+    conta_id = int(request.form.get('conta_id'))
+    conta = Conta.query.get_or_404(conta_id)
+    
+    selecionados = request.form.getlist('selecionado')
+    datas = request.form.getlist('data')
+    descricoes = request.form.getlist('descricao')
+    valores = request.form.getlist('valor')
+    categorias_ids = request.form.getlist('categoria_id')
+    
+    for idx in selecionados:
+        i = int(idx)
+        valor = float(valores[i])
+        cat_id = int(categorias_ids[i])
+        categoria = Categoria.query.get(cat_id)
+        
+        try:
+            data_obj = datetime.strptime(datas[i], '%Y-%m-%d')
+        except ValueError:
+            data_obj = datetime.utcnow()
+        
+        if categoria and categoria.tipo == 'Despesa':
+            conta.saldo_atual -= valor
+        else:
+            conta.saldo_atual += valor
+            
+        nova_t = Transacao(
+            conta_id=conta.id,
+            categoria_id=cat_id,
+            valor=valor,
+            descricao=descricoes[i],
+            data=data_obj
+        )
+        db.session.add(nova_t)
+        
+    db.session.commit()
+    return redirect(url_for('frontend.index'))
+
+@frontend.route('/frontend/chat', methods=['POST'])
+def chat_financeiro():
+    pergunta = request.form.get('mensagem', '').strip()
+    if not pergunta:
+        return "", 400
+        
+    historico = session.get('chat_history', [])
+    
+    try:
+        resposta_ia = responder_chat_financeiro(pergunta, historico)
+        historico.append({"role": "user", "text": pergunta})
+        historico.append({"role": "model", "text": resposta_ia})
+        session['chat_history'] = historico[-10:]
+    except Exception as e:
+        resposta_ia = f"⚠️ Erro ao consultar o Gemini: {str(e)}"
+    
+    # HTML embutido: dispensa criar o arquivo chat_mensagem.html
+    template_chat = """
+    <div class="flex justify-end">
+        <div class="bg-indigo-600 text-white p-3.5 rounded-2xl rounded-tr-none text-sm shadow-sm max-w-[85%]">
+            {{ pergunta }}
+        </div>
+    </div>
+    <div class="flex justify-start mt-3">
+        <div class="bg-white border border-slate-200 p-3.5 rounded-2xl rounded-tl-none text-sm text-slate-700 shadow-sm max-w-[85%] whitespace-pre-line">{{ resposta }}</div>
+    </div>
+    """
+    return render_template_string(template_chat, pergunta=pergunta, resposta=resposta_ia)

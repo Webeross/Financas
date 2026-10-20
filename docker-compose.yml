@@ -9,6 +9,8 @@ services:
       - ./data:/app/data     
     environment:
       - FLASK_ENV=development
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
 
 #Tunnel para abrir um link cloudfare
   tunnel:
@@ -16,3 +18,5 @@ services:
     command: tunnel --url http://web:5000
     depends_on:
       - web
+
+  

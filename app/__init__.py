@@ -4,7 +4,8 @@ from .models import db, Categoria
 
 def create_app():
     app = Flask(__name__)
-    
+
+    app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'chave_padrao_insegura_dev')
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'financas.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
